@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestDatabaseCreator", "TestDatabaseCreator\TestDatabaseCreator.csproj", "{5CA9B28D-ABF8-4C9A-816B-CA6D2C8EE717}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestDatabaseCreatorConsole", "TestDatabaseCreatorConsole\TestDatabaseCreatorConsole.csproj", "{569F54A2-BAA9-4771-9353-8787120081FE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5CA9B28D-ABF8-4C9A-816B-CA6D2C8EE717}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CA9B28D-ABF8-4C9A-816B-CA6D2C8EE717}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CA9B28D-ABF8-4C9A-816B-CA6D2C8EE717}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CA9B28D-ABF8-4C9A-816B-CA6D2C8EE717}.Release|Any CPU.Build.0 = Release|Any CPU
+		{569F54A2-BAA9-4771-9353-8787120081FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{569F54A2-BAA9-4771-9353-8787120081FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{569F54A2-BAA9-4771-9353-8787120081FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{569F54A2-BAA9-4771-9353-8787120081FE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
