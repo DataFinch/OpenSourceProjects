@@ -20,8 +20,11 @@ namespace TestDatabaseCreator
         };
 
 
+        private HashSet<TableReference> moved;
+
         public TableMover(SqlConnection Connection, string FromDatabase, string ToDatabase) :
             base(Connection, FromDatabase, ToDatabase) {
+            moved = new HashSet<TableReference>();
         }
 
         public override void Move(string objectName) {
@@ -30,25 +33,35 @@ namespace TestDatabaseCreator
                     TableName = objectName,
                     ColumnName = null,
                     ReferenceColumnName = null
-                });
+                }, null);
         }
 
-        public void Move(string objectName, string pkValue) {
-            
+        public void Move(string objectName, Guid? pkValue) {
+            Move(
+                new TableReference()
+                {
+                    TableName = objectName,
+                    ColumnName = null,
+                    ReferenceColumnName = null
+                }, pkValue);            
         }
+       
 
-        private void Move(TableReference t)
+        private void Move(TableReference t, Guid? primaryKey)
         {
-            Debug.WriteLine("Creating table " + t.TableName);
+            Debug.WriteLine(t.ReferenceTableName + "->" + t.TableName);
 
 
             var script = GetScript(t.TableName);
 
             RunSQL(script, to);
-            TransferData(t);
+            TransferData(t, primaryKey);
             foreach (var r in GetReferences(t.TableName))
             {
-                Move(r);
+                if (!moved.Contains(r)) {
+                    Move(r, null);
+                    moved.Add(r);
+                }
             }
         }
 
@@ -61,7 +74,7 @@ namespace TestDatabaseCreator
             return sb.ToString();
         }
 
-        private void TransferData(TableReference tref)
+        private void TransferData(TableReference tref, Guid? primaryKey)
         {
             string sql;
 
@@ -71,29 +84,51 @@ namespace TestDatabaseCreator
                 SetIdentityInsertOn(tref.TableName);
             }
 
+            var pkCol = GetPrimaryKeyColumn(tref.TableName);
+
             if (tref.ColumnName != null)
             {
                 sql = string.Format(@"
 		        insert into {1}..{2} with(tablock) ({6})
 		        select {6}
 		        from {0}..{2} a
-		        where exists(
-			        select 1 
-			        from {1}..{4} b
-			        where b.{5} = a.{3}
-                ) or a.{3} is null
+		        where (
+                    exists(
+			            select 1 
+			            from {1}..{4} b
+			            where b.{5} = a.{3}
+                    ) --or a.{3} is null
+                )
 		", from, to, tref.TableName, tref.ColumnName, tref.ReferenceTableName, tref.ReferenceColumnName, cols);
-            }
-            else
-            {
 
+                if (pkCol != null) {
+                    sql += string.Format(@"
+                and not exists(
+                    select 1
+                    from {0}..{1} _a
+                    where _a.{2} = a.{2}
+                )
+        ", to, tref.TableName, pkCol);
+                }
+
+            }
+            else if (primaryKey.HasValue) {
                 sql = string.Format(@"
 		        insert into {1}..{2} with(tablock) ({3})
 		        select {3}
-		        from {0}..{2} a
-                ", from, to, tref.TableName, cols);
-
+		        from {0}..{2} 
+                where {4} = '{5}'
+                ", from, to, tref.TableName, cols, pkCol, primaryKey.Value);
             }
+            else {
+                sql = string.Format(@"
+		        insert into {1}..{2} with(tablock) ({3})
+		        select {3}
+		        from {0}..{2} 
+                ", from, to, tref.TableName, cols);
+            }
+
+
             RunSQL(sql, to);
 
             if (HasIdentityColumn(tref.TableName))
@@ -101,6 +136,23 @@ namespace TestDatabaseCreator
                 SetIdentityInsertOff(tref.TableName);
             }
 
+        }
+
+        private string GetPrimaryKeyColumn(string p) {
+            var pkSQL = string.Format(@"
+		        select top 1 c.name 
+				from sys.indexes i
+					inner join sys.index_columns ic
+						on i.object_id = ic.object_id
+					inner join sys.columns c
+						on c.object_id = i.object_id
+						and c.column_id = ic.column_id 
+				where i.is_primary_key = 1
+				and i.object_id = object_id('{0}')
+            ", p);
+
+            var cmd = new SqlCommand(pkSQL, sql);
+            return (string) cmd.ExecuteScalar();
         }
 
         private IEnumerable<string> GetColumnList(string tableName) {

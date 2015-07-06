@@ -22,7 +22,7 @@ namespace TestDatabaseCreator
         public string ConnectionString { get; set; }
 
         public IEnumerable<string> BlacklistedTables { get; set; }
-        public IEnumerable<string> WhitelistedTables { get; set; }
+        public IEnumerable<WhiteListedTable> WhitelistedTables { get; set; }
 
         private SqlConnection sql;
 
@@ -74,7 +74,7 @@ namespace TestDatabaseCreator
             var m = new TableMover(sql, DatabaseName, TestDatabaseName);
 
             foreach (var w in WhitelistedTables) {
-                m.Move(w);
+                m.Move(w.Name, w.PrimaryKeyValue);
             }
         }
     }

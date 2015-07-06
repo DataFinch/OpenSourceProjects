@@ -14,7 +14,11 @@ namespace TestDatabaseCreatorConsole
                 ConnectionString = "Server=.\\sqlexpress;Database=master;Trusted_Connection=True;",
                 DatabaseName = "TherapistPortal",
                 TestDatabaseName = "TestCopy",
-                WhitelistedTables = new List<string> {  "Organization" }
+                WhitelistedTables = new List<WhiteListedTable> {
+                    new WhiteListedTable() {
+                        Name = "Organization", PrimaryKeyValue = new Guid("68E13B96-5140-480E-9B8D-391ADC75AA20")
+                    }
+                }
             };
             creator.Create();
         }
