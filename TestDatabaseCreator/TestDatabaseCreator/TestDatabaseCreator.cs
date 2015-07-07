@@ -26,7 +26,7 @@ namespace TestDatabaseCreator
 
         private SqlConnection sql;
         private List<string> tables;
-
+        public string BackupPath { get; set; }
 
         public TestDatabaseCreator() {
             tables = new List<string>();
@@ -43,14 +43,14 @@ namespace TestDatabaseCreator
             CreateIndexes();
 
             CreateForeignKeys();
-            //views
 
+            CreateViews();
 
-            //procs/functions
+            CreateStoredProcedures();
 
-            //backup to file
+            BackupDatabase();
 
-            //drop
+            Drop();
         }
 
         private void InitializeConnection() {
@@ -88,6 +88,26 @@ namespace TestDatabaseCreator
             {
                 m.Move(t);
             }
+        }
+
+        private void CreateViews() {
+            var i = new ViewMover(sql, DatabaseName, TestDatabaseName);
+            i.Move(TestDatabaseName);
+        }
+
+        private void CreateStoredProcedures() {
+            var p = new StoredProcedureMover(sql, DatabaseName, TestDatabaseName);
+            p.Move(TestDatabaseName);
+        }
+
+        private void BackupDatabase() {
+            var b = new BackupCreator(sql, DatabaseName, TestDatabaseName);
+            b.Backup(BackupPath);
+        }
+
+        private void Drop() {
+            var d = new DatabaseDropper(sql, DatabaseName, TestDatabaseName);
+            d.Drop();
         }
     }
 }

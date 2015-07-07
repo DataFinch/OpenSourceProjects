@@ -24,14 +24,14 @@ namespace TestDatabaseCreator
         };
 
 
-        public override void Move(string objectName) {
+        public void Move(string objectName) {
             var indexes = smoServer.Databases[from].Tables[objectName].Indexes;
 
             for (int i = 0; i < indexes.Count; i++) {
                 Debug.WriteLine(string.Format("Creating index {0} on {1}", indexes[i].Name, objectName));
-                var script = CondenseStringCollection(indexes[i].Script(options));
+                var script = indexes[i].Script(options);
 
-                RunSQL(script, to);
+                RunSQLCollection(script, to);
             }    
         }
     }

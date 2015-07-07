@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -26,6 +27,11 @@ namespace TestDatabaseCreator
             }
         }
 
-        public abstract void Move(string objectName);
+        protected void RunSQLCollection(StringCollection commands, string database) {
+            foreach (var c in commands) {
+                RunSQL(c, database);
+            }
+
+        }
     }
 }

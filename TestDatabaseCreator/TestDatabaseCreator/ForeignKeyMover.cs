@@ -29,14 +29,14 @@ namespace TestDatabaseCreator
         };
 
 
-        public override void Move(string objectName) {
+        public void Move(string objectName) {
             var fks = smoServer.Databases[from].Tables[objectName].ForeignKeys;
 
             for (int i = 0; i < fks.Count; i++) {
                 if (CanCreate(fks[i])) {
                     Debug.WriteLine(string.Format("Creating Foreign Key {0} on {1}", fks[i], objectName));
-                    var script = CondenseStringCollection(fks[i].Script(options));
-                    RunSQL(script, to);
+                    var script = fks[i].Script(options);
+                    RunSQLCollection(script, to);
                 }
             }    
         }

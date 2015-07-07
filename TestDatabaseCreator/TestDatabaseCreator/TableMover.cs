@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Linq;
@@ -28,7 +29,7 @@ namespace TestDatabaseCreator
             moved = new HashSet<TableReference>();
         }
 
-        public override void Move(string objectName) {
+        public void Move(string objectName) {
             Move(
                 new TableReference() {
                     TableName = objectName,
@@ -57,7 +58,7 @@ namespace TestDatabaseCreator
 
             var script = GetScript(t.TableName);
 
-            RunSQL(script, to);
+            RunSQLCollection(script, to);
             TransferData(t, primaryKey);
             foreach (var r in GetReferences(t.TableName))
             {
@@ -67,9 +68,8 @@ namespace TestDatabaseCreator
             }
         }
 
-        private string GetScript(string tableName) {
-            var lines = smoServer.Databases[from].Tables[tableName].Script(tableOptions);
-            return CondenseStringCollection(lines);
+        private StringCollection GetScript(string tableName) {
+            return smoServer.Databases[from].Tables[tableName].Script(tableOptions);
         }
 
         private void TransferData(TableReference tref, Guid? primaryKey)

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 
+
 namespace TestDatabaseCreator
 {
 
@@ -19,15 +20,9 @@ namespace TestDatabaseCreator
             :base(Connection, FromDatabase, ToDatabase){
 
                 smoServer = new Server(new ServerConnection(Connection));
+
         }
 
-        protected string CondenseStringCollection(StringCollection strings) {
-            var sb = new StringBuilder();
-            foreach (var l in strings)
-            {
-                sb.AppendLine(l);
-            }
-            return sb.ToString();
-        }
+      
     }
 }

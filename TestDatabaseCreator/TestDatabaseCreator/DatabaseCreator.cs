@@ -14,7 +14,7 @@ namespace TestDatabaseCreator
             : base(Connection, null, null) {
         }
 
-        public override void Move(string objectName)
+        public void Move(string objectName)
         {
             var drop = string.Format(@"
     if(exists(select 1 from sys.databases where name = '{0}'))
