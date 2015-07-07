@@ -16,7 +16,8 @@ namespace TestDatabaseCreator
         {
             Indexes = false,
             ScriptDrops = false,
-            IncludeIfNotExists = true
+            IncludeIfNotExists = true,
+            DriPrimaryKey = false
         };
 
 
@@ -36,21 +37,23 @@ namespace TestDatabaseCreator
                 }, null);
         }
 
-        public void Move(string objectName, Guid? pkValue) {
+        public IEnumerable<string> Move(string objectName, Guid? pkValue) {
             Move(
                 new TableReference()
                 {
                     TableName = objectName,
                     ColumnName = null,
                     ReferenceColumnName = null
-                }, pkValue);            
+                }, pkValue);
+
+            return moved.Select(x => x.TableName).Distinct();
         }
        
 
         private void Move(TableReference t, Guid? primaryKey)
         {
             Debug.WriteLine(t.ReferenceTableName + "->" + t.TableName);
-
+            moved.Add(t);
 
             var script = GetScript(t.TableName);
 
@@ -60,18 +63,13 @@ namespace TestDatabaseCreator
             {
                 if (!moved.Contains(r)) {
                     Move(r, null);
-                    moved.Add(r);
                 }
             }
         }
 
         private string GetScript(string tableName) {
             var lines = smoServer.Databases[from].Tables[tableName].Script(tableOptions);
-            var sb = new StringBuilder();
-            foreach (var l in lines) {
-                sb.AppendLine(l);
-            }
-            return sb.ToString();
+            return CondenseStringCollection(lines);
         }
 
         private void TransferData(TableReference tref, Guid? primaryKey)
@@ -101,22 +99,12 @@ namespace TestDatabaseCreator
                 )
 		", from, to, tref.TableName, tref.ColumnName, tref.ReferenceTableName, tref.ReferenceColumnName, cols);
 
-                if (pkCol != null) {
-                    sql += string.Format(@"
-                and not exists(
-                    select 1
-                    from {0}..{1} _a
-                    where _a.{2} = a.{2}
-                )
-        ", to, tref.TableName, pkCol);
-                }
-
             }
             else if (primaryKey.HasValue) {
                 sql = string.Format(@"
 		        insert into {1}..{2} with(tablock) ({3})
 		        select {3}
-		        from {0}..{2} 
+		        from {0}..{2} a
                 where {4} = '{5}'
                 ", from, to, tref.TableName, cols, pkCol, primaryKey.Value);
             }
@@ -124,10 +112,21 @@ namespace TestDatabaseCreator
                 sql = string.Format(@"
 		        insert into {1}..{2} with(tablock) ({3})
 		        select {3}
-		        from {0}..{2} 
+		        from {0}..{2} a
                 ", from, to, tref.TableName, cols);
             }
 
+
+            if (pkCol != null)
+            {
+                sql += string.Format(@"
+                and not exists(
+                    select 1
+                    from {0}..{1} _a
+                    where _a.{2} = a.{2}
+                )
+        ", to, tref.TableName, pkCol);
+            }
 
             RunSQL(sql, to);
 
@@ -140,6 +139,8 @@ namespace TestDatabaseCreator
 
         private string GetPrimaryKeyColumn(string p) {
             var pkSQL = string.Format(@"
+                use {0};
+
 		        select top 1 c.name 
 				from sys.indexes i
 					inner join sys.index_columns ic
@@ -148,10 +149,11 @@ namespace TestDatabaseCreator
 						on c.object_id = i.object_id
 						and c.column_id = ic.column_id 
 				where i.is_primary_key = 1
-				and i.object_id = object_id('{0}')
-            ", p);
+				and i.object_id = object_id('{1}');
+            ", from, p);
 
             var cmd = new SqlCommand(pkSQL, sql);
+           
             return (string) cmd.ExecuteScalar();
         }
 

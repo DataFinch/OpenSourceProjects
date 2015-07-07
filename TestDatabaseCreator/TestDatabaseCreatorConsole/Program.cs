@@ -16,7 +16,8 @@ namespace TestDatabaseCreatorConsole
                 TestDatabaseName = "TestCopy",
                 WhitelistedTables = new List<WhiteListedTable> {
                     new WhiteListedTable() {
-                        Name = "Organization", PrimaryKeyValue = new Guid("68E13B96-5140-480E-9B8D-391ADC75AA20")
+                        //Name = "Organization", PrimaryKeyValue = new Guid("68E13B96-5140-480E-9B8D-391ADC75AA20")
+                        Name = "Organization", PrimaryKeyValue = new Guid("DC39ACF6-779C-4850-85F9-A542CAC8ED88")
                     }
                 }
             };

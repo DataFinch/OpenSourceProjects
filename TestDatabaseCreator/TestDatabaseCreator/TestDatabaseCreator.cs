@@ -25,17 +25,11 @@ namespace TestDatabaseCreator
         public IEnumerable<WhiteListedTable> WhitelistedTables { get; set; }
 
         private SqlConnection sql;
-
-        private ScriptingOptions indexOptions = new ScriptingOptions() {
-            IncludeIfNotExists = true,
-            NonClusteredIndexes = true,
-            ClusteredIndexes = true,
-            DriAllConstraints = true
-        };
+        private List<string> tables;
 
 
-        public TestDatabaseCreator()
-        {
+        public TestDatabaseCreator() {
+            tables = new List<string>();
         }
 
         public void Create()
@@ -46,9 +40,11 @@ namespace TestDatabaseCreator
 
             CreateTables();
 
-            //indexes 
+            CreateIndexes();
 
+            CreateForeignKeys();
             //views
+
 
             //procs/functions
 
@@ -74,7 +70,23 @@ namespace TestDatabaseCreator
             var m = new TableMover(sql, DatabaseName, TestDatabaseName);
 
             foreach (var w in WhitelistedTables) {
-                m.Move(w.Name, w.PrimaryKeyValue);
+                tables.AddRange(m.Move(w.Name, w.PrimaryKeyValue));
+            }
+        }
+
+        private void CreateIndexes() {
+            var m = new IndexMover(sql, DatabaseName, TestDatabaseName);
+            foreach (var t in tables) {
+                m.Move(t);
+            }
+        }
+
+        private void CreateForeignKeys()
+        {
+            var m = new ForeignKeyMover(sql, DatabaseName, TestDatabaseName);
+            foreach (var t in tables)
+            {
+                m.Move(t);
             }
         }
     }

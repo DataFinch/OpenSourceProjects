@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -18,6 +19,15 @@ namespace TestDatabaseCreator
             :base(Connection, FromDatabase, ToDatabase){
 
                 smoServer = new Server(new ServerConnection(Connection));
+        }
+
+        protected string CondenseStringCollection(StringCollection strings) {
+            var sb = new StringBuilder();
+            foreach (var l in strings)
+            {
+                sb.AppendLine(l);
+            }
+            return sb.ToString();
         }
     }
 }
