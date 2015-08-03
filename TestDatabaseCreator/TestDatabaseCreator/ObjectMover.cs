@@ -23,6 +23,7 @@ namespace TestDatabaseCreator
         protected void RunSQL(string command, string database) {
             sql.ChangeDatabase(database);
             using (var cmd = new SqlCommand(command, sql)) {
+                cmd.CommandTimeout = 3600;
                 cmd.ExecuteNonQuery();
             }
         }

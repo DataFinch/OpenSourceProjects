@@ -20,7 +20,7 @@ namespace TestDatabaseCreator
             BackupDeviceItem d = new BackupDeviceItem(BackupPath, DeviceType.File);
 
             Backup b = new Backup() {
-                Database = from,
+                Database = to,
                 CompressionOption = BackupCompressionOptions.Default,
                 Initialize = true,
                 Action = BackupActionType.Database,

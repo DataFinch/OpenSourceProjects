@@ -62,7 +62,7 @@ namespace TestDatabaseCreator
 
         private void CreateDatabase() {
             var db = new DatabaseCreator(sql);
-            db.Move(TestDatabaseName);
+            db.Create(DatabaseName, TestDatabaseName);
         }
 
         
@@ -70,7 +70,7 @@ namespace TestDatabaseCreator
             var m = new TableMover(sql, DatabaseName, TestDatabaseName);
 
             foreach (var w in WhitelistedTables) {
-                tables.AddRange(m.Move(w.Name, w.PrimaryKeyValue));
+                tables.AddRange(m.Move(w.Name, w.PrimaryKeyValue, BlacklistedTables));
             }
         }
 

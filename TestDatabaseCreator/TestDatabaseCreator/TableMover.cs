@@ -23,6 +23,7 @@ namespace TestDatabaseCreator
 
 
         private HashSet<TableReference> moved;
+        private HashSet<string> blacklist;
 
         public TableMover(SqlConnection Connection, string FromDatabase, string ToDatabase) :
             base(Connection, FromDatabase, ToDatabase) {
@@ -38,7 +39,8 @@ namespace TestDatabaseCreator
                 }, null);
         }
 
-        public IEnumerable<string> Move(string objectName, Guid? pkValue) {
+        public IEnumerable<string> Move(string objectName, Guid? pkValue, IEnumerable<string> Blacklist) {
+            blacklist = new HashSet<string>(Blacklist);
             Move(
                 new TableReference()
                 {
@@ -53,6 +55,10 @@ namespace TestDatabaseCreator
 
         private void Move(TableReference t, Guid? primaryKey)
         {
+            if (blacklist.Contains(t.TableName)) {
+                return;
+            }
+
             Debug.WriteLine(t.ReferenceTableName + "->" + t.TableName);
             moved.Add(t);
 
