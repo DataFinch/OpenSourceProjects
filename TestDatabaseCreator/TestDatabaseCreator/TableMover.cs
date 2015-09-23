@@ -93,13 +93,13 @@ namespace TestDatabaseCreator
             if (tref.ColumnName != null)
             {
                 sql = string.Format(@"
-		        insert into {1}..{2} with(tablock) ({6})
+		        insert into [{1}]..[{2}] with(tablock) ({6})
 		        select {6}
-		        from {0}..{2} a
+		        from [{0}]..[{2}] a
 		        where (
                     exists(
 			            select 1 
-			            from {1}..{4} b
+			            from [{1}]..[{4}] b
 			            where b.{5} = a.{3}
                     ) --or a.{3} is null
                 )
@@ -108,17 +108,18 @@ namespace TestDatabaseCreator
             }
             else if (primaryKey.HasValue) {
                 sql = string.Format(@"
-		        insert into {1}..{2} with(tablock) ({3})
+		        insert into [{1}]..[{2}] with(tablock) ({3})
 		        select {3}
-		        from {0}..{2} a
+		        from [{0}]..[{2}] a
                 where {4} = '{5}'
                 ", from, to, tref.TableName, cols, pkCol, primaryKey.Value);
             }
             else {
                 sql = string.Format(@"
-		        insert into {1}..{2} with(tablock) ({3})
+		        insert into [{1}]..[{2}] with(tablock) ({3})
 		        select {3}
-		        from {0}..{2} a
+		        from [{0}]..[{2}] a
+                where 1=1
                 ", from, to, tref.TableName, cols);
             }
 
@@ -128,7 +129,7 @@ namespace TestDatabaseCreator
                 sql += string.Format(@"
                 and not exists(
                     select 1
-                    from {0}..{1} _a
+                    from [{0}]..[{1}] _a
                     where _a.{2} = a.{2}
                 )
         ", to, tref.TableName, pkCol);
