@@ -67,11 +67,18 @@ namespace TestDatabaseCreator
 
         
         private void CreateTables() {
-            var m = new TableMover(sql, DatabaseName, TestDatabaseName);
+            var m = new TableMover(sql, DatabaseName, TestDatabaseName, BlacklistedTables);
 
             foreach (var w in WhitelistedTables) {
-                tables.AddRange(m.Move(w.Name, w.PrimaryKeyValue, BlacklistedTables));
+                if (w.PrimaryKeyValue.HasValue) {
+                    m.AddRootTable(w.Name, w.PrimaryKeyValue.Value);
+                }
+                else {
+                    m.AddRootTable(w.Name);
+                }
             }
+
+            m.Move();
         }
 
         private void CreateIndexes() {

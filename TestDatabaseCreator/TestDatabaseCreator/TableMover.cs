@@ -21,56 +21,66 @@ namespace TestDatabaseCreator
             DriPrimaryKey = false
         };
 
-
-        private HashSet<TableReference> moved;
         private HashSet<string> blacklist;
+        private Dictionary<string, Table> Tables;
 
-        public TableMover(SqlConnection Connection, string FromDatabase, string ToDatabase) :
+        public TableMover(SqlConnection Connection, string FromDatabase, string ToDatabase, IEnumerable<string> Blacklist) :
             base(Connection, FromDatabase, ToDatabase) {
-            moved = new HashSet<TableReference>();
-        }
-
-        public void Move(string objectName) {
-            Move(
-                new TableReference() {
-                    TableName = objectName,
-                    ColumnName = null,
-                    ReferenceColumnName = null
-                }, null);
-        }
-
-        public IEnumerable<string> Move(string objectName, Guid? pkValue, IEnumerable<string> Blacklist) {
+            Tables = new Dictionary<string, Table>();
             blacklist = new HashSet<string>(Blacklist);
-            Move(
-                new TableReference()
-                {
-                    TableName = objectName,
-                    ColumnName = null,
-                    ReferenceColumnName = null
-                }, pkValue);
+        }
 
-            return moved.Select(x => x.TableName).Distinct();
+        public void AddRootTable(string name) {
+            if (!blacklist.Contains(name) && !Tables.ContainsKey(name)) {
+                Tables.Add(name, new Table(name));
+            }
+        }
+
+        public void AddRootTable(string name, Guid pkValue) {
+            AddRootTable(name);
+            Tables[name].PKValue = pkValue;
+        }
+
+        public IEnumerable<string> Move() {
+            //build map
+            var roots = new List<Table>(Tables.Values);
+            foreach(var r in roots) {
+                Map(r);
+            }
+
+            //create tables
+            var tbls = new List<Table>(Tables.Values);
+            foreach (var t in tbls) {
+                var script = GetScript(t.Name);
+                RunSQLCollection(script, to);
+            }
+
+            //move data
+            while (tbls.Any()) {
+                var movable = tbls.Where(x => x.CanMove).ToList();
+                var t = tbls.Where(x => x.CanMove).First();
+                TransferData(t, t.PKValue);
+                t.Moved();
+                tbls.Remove(t);
+            }
+
+            return Tables.Keys;
         }
        
 
-        private void Move(TableReference t, Guid? primaryKey)
+        private void Map(Table t)
         {
-            if (blacklist.Contains(t.TableName)) {
+            if (blacklist.Contains(t.Name)) {
                 return;
             }
 
-            Debug.WriteLine(t.ReferenceTableName + "->" + t.TableName);
-            moved.Add(t);
+            if (!Tables.ContainsKey(t.Name)) {
+                Tables.Add(t.Name, t);
+            }
 
-            var script = GetScript(t.TableName);
-
-            RunSQLCollection(script, to);
-            TransferData(t, primaryKey);
-            foreach (var r in GetReferences(t.TableName))
+            foreach (var r in GetReferences(t.Name))
             {
-                if (!moved.Contains(r)) {
-                    Move(r, null);
-                }
+                Map(Tables[r]);
             }
         }
 
@@ -78,68 +88,57 @@ namespace TestDatabaseCreator
             return smoServer.Databases[from].Tables[tableName].Script(tableOptions);
         }
 
-        private void TransferData(TableReference tref, Guid? primaryKey)
+        private void TransferData(Table t, Guid? primaryKey)
         {
-            string sql;
+            StringBuilder sql = new StringBuilder();
 
-            var cols = string.Join(", ", GetColumnList(tref.TableName));
+            var cols = string.Join(", ", GetColumnList(t.Name));
 
-            if (HasIdentityColumn(tref.TableName)) {
-                SetIdentityInsertOn(tref.TableName);
+            if (HasIdentityColumn(t.Name)) {
+                SetIdentityInsertOn(t.Name);
             }
 
-            var pkCol = GetPrimaryKeyColumn(tref.TableName);
+            var pkCol = GetPrimaryKeyColumn(t.Name);
 
-            if (tref.ColumnName != null)
+            sql.AppendLine(string.Format("insert into [{0}]..[{1}] with(tablock) ({2})", to, t.Name, cols));
+            sql.AppendLine(string.Format("select {0}", cols));
+            sql.AppendLine(string.Format("from [{0}]..[{1}] a", from, t.Name));
+            sql.AppendLine("where 1=1");
+
+            if (primaryKey.HasValue) {
+                sql.AppendLine(string.Format("and {0} = '{1}'", pkCol, primaryKey.Value));
+            }
+
+            if (t.References.Any()) {
+                bool first = true;
+                sql.AppendLine("and (");
+                foreach(var r in t.References) {
+                    if (!first) {
+                        sql.AppendLine("OR");
+                    }
+                    sql.AppendLine("exists(");
+                    sql.AppendLine("select 1");
+                    sql.AppendLine(string.Format("from [{0}]..[{1}] _a", to, r.ForeignTable.Name));
+                    sql.AppendLine(string.Format("where _a.{0} = a.{1}", r.ForeignColumnName, r.ColumnName));
+                    sql.AppendLine(")");
+                } 
+                sql.AppendLine(")");
+            }
+
+            if(pkCol != null) {
+                sql.AppendLine("and not exists(");
+                sql.AppendLine("select 1");
+                sql.AppendLine(string.Format("from [{0}]..[{1}] _a", to, t.Name));
+                sql.AppendLine(string.Format("where _a.{0} = a.{0}", pkCol));
+                sql.AppendLine(")");
+            }
+
+
+            RunSQL(sql.ToString(), to);
+
+            if (HasIdentityColumn(t.Name))
             {
-                sql = string.Format(@"
-		        insert into [{1}]..[{2}] with(tablock) ({6})
-		        select {6}
-		        from [{0}]..[{2}] a
-		        where (
-                    exists(
-			            select 1 
-			            from [{1}]..[{4}] b
-			            where b.{5} = a.{3}
-                    ) --or a.{3} is null
-                )
-		", from, to, tref.TableName, tref.ColumnName, tref.ReferenceTableName, tref.ReferenceColumnName, cols);
-
-            }
-            else if (primaryKey.HasValue) {
-                sql = string.Format(@"
-		        insert into [{1}]..[{2}] with(tablock) ({3})
-		        select {3}
-		        from [{0}]..[{2}] a
-                where {4} = '{5}'
-                ", from, to, tref.TableName, cols, pkCol, primaryKey.Value);
-            }
-            else {
-                sql = string.Format(@"
-		        insert into [{1}]..[{2}] with(tablock) ({3})
-		        select {3}
-		        from [{0}]..[{2}] a
-                where 1=1
-                ", from, to, tref.TableName, cols);
-            }
-
-
-            if (pkCol != null)
-            {
-                sql += string.Format(@"
-                and not exists(
-                    select 1
-                    from [{0}]..[{1}] _a
-                    where _a.{2} = a.{2}
-                )
-        ", to, tref.TableName, pkCol);
-            }
-
-            RunSQL(sql, to);
-
-            if (HasIdentityColumn(tref.TableName))
-            {
-                SetIdentityInsertOff(tref.TableName);
+                SetIdentityInsertOff(t.Name);
             }
 
         }
@@ -206,7 +205,7 @@ namespace TestDatabaseCreator
         }
 
 
-        private IEnumerable<TableReference> GetReferences(string table)
+        private IEnumerable<string> GetReferences(string table)
         {
             string refSql = string.Format(@"
 	select object_name(fk.parent_object_id), object_name(fk.referenced_object_id), tc.name, rc.name, 0
@@ -222,32 +221,65 @@ namespace TestDatabaseCreator
 	where fk.referenced_object_id = object_id('{0}')
 ", table);
             sql.ChangeDatabase(from);
-            var refs = new List<TableReference>();
+            var refs = new List<string>();
             var cmd = new SqlCommand(refSql, sql);
 
             using (var r = cmd.ExecuteReader())
             {
                 while (r.Read()) {
-                    refs.Add(new TableReference() {
-                        TableName = r.GetString(0),
-                        ReferenceTableName = r.GetString(1),
-                        ColumnName = r.GetString(2),
-                        ReferenceColumnName = r.GetString(3)
-                    });
+                    var name = r.GetString(0);
+                    if (name != table) {
+                        if (!Tables.ContainsKey(name) && !blacklist.Contains(name)) {
+                            Tables.Add(name, new Table(name));
+                            refs.Add(name);
+                            Tables[name].AddReference(
+                                new Reference() {
+                                    ForeignTable = Tables[table],
+                                    ColumnName = r.GetString(2),
+                                    ForeignColumnName = r.GetString(3)
+                                });
+                        }
+                    }
                 }
             }
-
-            return refs.Where(x => x.TableName != x.ReferenceTableName);
+            return refs;
         }
 
     }
 
-    internal struct TableReference
+    internal class Table {
+        public string Name;
+        public Guid? PKValue { get; set; }
+
+        public List<Reference> References { get; private set; }
+        private bool IsMoved;
+
+        public Table(string Name) {
+            References = new List<Reference>();
+            IsMoved = false;
+            this.Name = Name;
+        }
+
+        public void AddReference(Reference r) {
+            References.Add(r);
+        }
+
+        public bool CanMove {
+            get {
+                return References.All(x => x.ForeignTable.IsMoved);
+            }
+        }
+
+        public void Moved() {
+            IsMoved = true;
+        }
+    }
+
+    internal struct Reference
     {
-        public string TableName { get; set; }
         public string ColumnName { get; set; }
-        public string ReferenceTableName { get; set; }
-        public string ReferenceColumnName { get; set; }
+        public Table ForeignTable { get; set; }
+        public string ForeignColumnName { get; set; }
     }
 
 }

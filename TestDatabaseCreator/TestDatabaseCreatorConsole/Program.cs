@@ -12,9 +12,10 @@ namespace TestDatabaseCreatorConsole
         static void Main(string[] args) {
             var org = new Guid("DC39ACF6-779C-4850-85F9-A542CAC8ED88");
             var creator = new TestDatabaseCreator.TestDatabaseCreator() {
-                ConnectionString = "Server=.\\sqlexpress;Database=master;Trusted_Connection=True;",
+                ConnectionString = "Server=192.168.58.55;Database=master;Trusted_Connection=True;",
+                //ConnectionString = "Server=.\\sqlexpress;Database=master;Trusted_Connection=True;",
                 DatabaseName = "TherapistPortal",
-                TestDatabaseName = "DFT_Test",
+                TestDatabaseName = "DFT",
                 WhitelistedTables = new List<WhiteListedTable> {
                     new WhiteListedTable() {
                         //Name = "Organization", PrimaryKeyValue = new Guid("68E13B96-5140-480E-9B8D-391ADC75AA20")
