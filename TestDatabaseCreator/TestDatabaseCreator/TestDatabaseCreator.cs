@@ -48,9 +48,9 @@ namespace TestDatabaseCreator
 
             CreateStoredProcedures();
 
-            BackupDatabase();
+            //BackupDatabase();
 
-            Drop();
+            //Drop();
         }
 
         private void InitializeConnection() {
@@ -78,7 +78,7 @@ namespace TestDatabaseCreator
                 }
             }
 
-            m.Move();
+            tables.AddRange(m.Move());
         }
 
         private void CreateIndexes() {
