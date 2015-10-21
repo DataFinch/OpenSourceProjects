@@ -34,10 +34,14 @@ namespace TestDatabaseCreatorConsole
                     new WhiteListedTable() { Name = "SiteUserAssignments" },
                     new WhiteListedTable() { Name = "StudentCloneQueue" },
                     new WhiteListedTable() { Name = "TimezoneLookup" },
+                    new WhiteListedTable() { Name = "ProgressReportItemProgress" },
                     new WhiteListedTable() { Name = "tools_calendar" },
                     new WhiteListedTable() { Name = "Widget_AverageTrialsPerDay" },
                     new WhiteListedTable() { Name = "Widget_LowestPerformingTargets" },
-                    new WhiteListedTable() { Name = "WidgetBase" }
+                    new WhiteListedTable() { Name = "WidgetBase" },
+                    new WhiteListedTable() { Name = "OrganizationIntegrations" },
+                    new WhiteListedTable() { Name = "SyncErrors" },
+                    new WhiteListedTable() { Name = "schema_info" }
 
                 },
                 BackupPath = "C:\\Temp\\DFT.bak",

@@ -48,9 +48,9 @@ namespace TestDatabaseCreator
 
             CreateStoredProcedures();
 
-            //BackupDatabase();
+            BackupDatabase();
 
-            //Drop();
+            Drop();
         }
 
         private void InitializeConnection() {

@@ -31,7 +31,7 @@ namespace TestDatabaseCreator
         }
 
         public void AddRootTable(string name) {
-            if (!blacklist.Contains(name) && !Tables.ContainsKey(name)) {
+            if (!Tables.ContainsKey(name)) {
                 Tables.Add(name, new Table(name));
             }
         }
@@ -59,7 +59,9 @@ namespace TestDatabaseCreator
             while (tbls.Any()) {
                 var movable = tbls.Where(x => x.CanMove).ToList();
                 var t = tbls.Where(x => x.CanMove).First();
-                TransferData(t, t.PKValue);
+                if (!blacklist.Contains(t.Name)) {
+                    TransferData(t, t.PKValue);
+                }
                 t.Moved();
                 tbls.Remove(t);
             }
@@ -70,10 +72,6 @@ namespace TestDatabaseCreator
 
         private void Map(Table t)
         {
-            if (blacklist.Contains(t.Name)) {
-                return;
-            }
-
             if (!Tables.ContainsKey(t.Name)) {
                 Tables.Add(t.Name, t);
             }
@@ -229,7 +227,7 @@ namespace TestDatabaseCreator
                 while (r.Read()) {
                     var name = r.GetString(0);
                     if (name != table) {
-                        if (!Tables.ContainsKey(name) && !blacklist.Contains(name)) {
+                        if (!Tables.ContainsKey(name)) {
                             Tables.Add(name, new Table(name));
                             refs.Add(name);
                             Tables[name].AddReference(
